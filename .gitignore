@@ -1,0 +1,16 @@
+tmp_del/
+nw_tmp/
+# Node stuff
+node_modules/
+dist/
+build/
+.vite/
+
+# IDE and OS junk
+.idea/
+.DS_Store
+*.log
+
+# .NET build
+bin/
+obj/

@@ -1,0 +1,6 @@
+@VocabularyTrainer_HostAddress = http://localhost:5287
+
+GET {{VocabularyTrainer_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
