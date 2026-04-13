@@ -8,16 +8,19 @@ namespace VocabularyTrainer.Data.Data
         public AppDbContext(DbContextOptions<AppDbContext> options) : base(options) { }
 
         public DbSet<Flashcard> Flashcards { get; set; }
+        public DbSet<FlashcardTranslation> FlashcardTranslations { get; set; }
+        public DbSet<UserLanguage> UserLanguages { get; set; }
+        public DbSet<UserFlashcardProgress> UserFlashcardProgresses { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
 
-            // Sample Data (Optional)
-            modelBuilder.Entity<Flashcard>().HasData(
-                new Flashcard { Id = 1, German = "Haus", English = "House", Croatian = "Kuća", French = "Maison", ExampleSentence = "Das Haus ist groß." },
-                new Flashcard { Id = 2, German = "Baum", English = "Tree", Croatian = "Drvo", French = "Arbre", ExampleSentence = "Der Baum ist hoch." }
-            );
+            modelBuilder.Entity<Flashcard>()
+                .HasMany(f => f.Translations)
+                .WithOne(t => t.Flashcard)
+                .HasForeignKey(t => t.FlashcardId)
+                .OnDelete(DeleteBehavior.Cascade);
         }
     }
 }

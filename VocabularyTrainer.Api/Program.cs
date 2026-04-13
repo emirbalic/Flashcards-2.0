@@ -13,8 +13,7 @@ builder.Services.AddScoped<FlashcardService>();
 builder.Services.AddScoped<FlashcardRepository>();
 
 builder.Services.AddControllers();
-builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+
 
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseSqlite(builder.Configuration.GetConnectionString("DefaultConnection")));

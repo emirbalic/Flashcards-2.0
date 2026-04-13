@@ -27,12 +27,12 @@ namespace VocabularyTrainer.DataAccess.Repositories
         {
             var flashcardsQuery = _context.Flashcards.AsQueryable();
 
-            // Searching
-            if (!string.IsNullOrWhiteSpace(query.Search))
-            {
-                flashcardsQuery = flashcardsQuery
-                    .Where(f => f.German.Contains(query.Search) || f.English.Contains(query.Search));
-            }
+            // // Searching
+            // if (!string.IsNullOrWhiteSpace(query.Search))
+            // {
+            //     flashcardsQuery = flashcardsQuery
+            //         .Where(f => f.German.Contains(query.Search) || f.English.Contains(query.Search));
+            // }
 
             // // Filtering (example: by category)
             // if (!string.IsNullOrWhiteSpace(query.Category))
@@ -47,7 +47,7 @@ namespace VocabularyTrainer.DataAccess.Repositories
                     ? flashcardsQuery.OrderByDescendingDynamic(query.SortBy)
                     : flashcardsQuery.OrderByDynamic(query.SortBy);
             }
-            
+
             var totalCount = await flashcardsQuery.CountAsync();
 
             // Pagination
@@ -72,7 +72,12 @@ namespace VocabularyTrainer.DataAccess.Repositories
 
         public async Task<Flashcard> GetByIdAsync(int id)
         {
-            return await _context.Flashcards.FindAsync(id);
+            var entity = await _context.Flashcards.FindAsync(id);
+
+            if (entity == null)
+                throw new Exception("Flashcard not found");
+
+            return entity;
         }
 
         public async Task AddAsync(Flashcard flashcard)

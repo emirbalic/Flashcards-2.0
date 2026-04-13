@@ -1,19 +1,14 @@
-using System.ComponentModel.DataAnnotations;
+using VocabularyTrainer.Data.Models;
 
-namespace VocabularyTrainer.Data.Models
+public class Flashcard
 {
-    public class Flashcard
-    {
-        [Key]
-        public int Id { get; set; }
+    public int Id { get; set; }
 
-        [Required]
-        public string German { get; set; } = string.Empty;
+    public int UserId { get; set; }
 
-        public string English { get; set; } = string.Empty;
-        public string Croatian { get; set; } = string.Empty;
-        public string French { get; set; } = string.Empty;
+    public string? WordType { get; set; }
 
-        public string ExampleSentence { get; set; } = string.Empty;
-    }
+    public string? ExampleSentence { get; set; }
+
+    public ICollection<FlashcardTranslation> Translations { get; set; } = new List<FlashcardTranslation>();
 }
