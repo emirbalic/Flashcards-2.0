@@ -12,26 +12,14 @@ namespace VocabularyTrainer.Api.Controllers
         private readonly FlashcardService _flashcardService;
         private readonly ILogger<FlashcardsController> _logger;
 
-        // Inject logger into the constructor
         public FlashcardsController(FlashcardService flashcardService, ILogger<FlashcardsController> logger)
         {
             _flashcardService = flashcardService;
             _logger = logger;
         }
-        // // [HttpGet]
-        // // public async Task<ActionResult<List<Flashcard>>> GetFlashcards()
-        // // {
-        // //     var flashcards = await _flashcardService.GetAllFlashcardsAsync();
-        // //     return Ok(flashcards);
-        // // }
-        //
-        // [HttpGet]
-        // public async Task<ActionResult<List<Flashcard>>> GetFlashcards([FromQuery] FlashcardQueryParams queryParams)
-        // {
-        //     var flashcards = await _flashcardService.GetFlashcardsAsync(queryParams);
-        //     return Ok(flashcards);
-        // }
-        
+
+        // ---------------- OLD (keep for now) ----------------
+
         [HttpGet]
         public async Task<ActionResult<PagedResult<Flashcard>>> GetFlashcards([FromQuery] FlashcardQueryParams queryParams)
         {
@@ -39,11 +27,11 @@ namespace VocabularyTrainer.Api.Controllers
             return Ok(result);
         }
 
-
         [HttpGet("{id}")]
         public async Task<ActionResult<Flashcard>> GetFlashcard(int id)
         {
             var flashcard = await _flashcardService.GetFlashcardByIdAsync(id);
+
             if (flashcard == null)
                 return NotFound();
 
@@ -54,10 +42,9 @@ namespace VocabularyTrainer.Api.Controllers
         public async Task<ActionResult> CreateFlashcard([FromBody] Flashcard flashcard)
         {
             await _flashcardService.CreateFlashcardAsync(flashcard);
+
             return CreatedAtAction(nameof(GetFlashcard), new { id = flashcard.Id }, flashcard);
         }
-
-
 
         [HttpPost("bulk")]
         public async Task<IActionResult> UploadFlashcards([FromForm] IFormFile file)
@@ -70,7 +57,6 @@ namespace VocabularyTrainer.Api.Controllers
                 return BadRequest("No file uploaded.");
             }
 
-            // Log file details
             _logger.LogInformation("Processing file: {FileName}, Size: {FileSize} bytes", file.FileName, file.Length);
 
             var result = await _flashcardService.UploadFlashcardsAsync(file);
@@ -86,7 +72,6 @@ namespace VocabularyTrainer.Api.Controllers
             return Ok(new { message = "Flashcards uploaded successfully!", count = result.Count });
         }
 
-
         [HttpPut("{id}")]
         public async Task<ActionResult> UpdateFlashcard(int id, [FromBody] Flashcard flashcard)
         {
@@ -100,6 +85,22 @@ namespace VocabularyTrainer.Api.Controllers
         {
             await _flashcardService.DeleteFlashcardAsync(id);
             return NoContent();
+        }
+
+        // ---------------- NEW (2.0) ----------------
+
+        [HttpPost("v2")]
+        public async Task<ActionResult> CreateFlashcardV2([FromBody] CreateFlashcardDto dto)
+        {
+            var result = await _flashcardService.CreateAsync(dto, 1); // temp user
+            return Ok(result);
+        }
+
+        [HttpGet("v2")]
+        public async Task<ActionResult<List<Flashcard>>> GetFlashcardsV2()
+        {
+            var result = await _flashcardService.GetAllAsync(1); // temp user
+            return Ok(result);
         }
     }
 }

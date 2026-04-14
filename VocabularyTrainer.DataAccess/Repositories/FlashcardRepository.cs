@@ -1,14 +1,12 @@
-// VocabularyTrainer.DataAccess/Repositories/FlashcardRepository.cs
-
+using Microsoft.EntityFrameworkCore;
 using VocabularyTrainer.Data.Data;
 using VocabularyTrainer.Data.Models;
-using Microsoft.EntityFrameworkCore;
+using VocabularyTrainer.DataAccess.Interfaces;
 using VocabularyTrainer.Contracts.Flashcards;
-using System.Linq.Expressions;
 
 namespace VocabularyTrainer.DataAccess.Repositories
 {
-    public class FlashcardRepository
+    public class FlashcardRepository : IFlashcardRepository
     {
         private readonly AppDbContext _context;
 
@@ -17,81 +15,53 @@ namespace VocabularyTrainer.DataAccess.Repositories
             _context = context;
         }
 
-        public async Task<List<Flashcard>> GetAllAsync()
+        public async Task<PagedResult<Flashcard>> GetFilteredFlashcardsAsync(FlashcardQueryParams queryParams)
         {
-            return await _context.Flashcards.ToListAsync();
-        }
+            var query = _context.Flashcards
+                .Include(f => f.Translations)
+                .AsQueryable();
 
-        // public async Task<List<Flashcard>> GetFilteredFlashcardsAsync(FlashcardQueryParams query)
-        public async Task<PagedResult<Flashcard>> GetFilteredFlashcardsAsync(FlashcardQueryParams query)
-        {
-            var flashcardsQuery = _context.Flashcards.AsQueryable();
-
-            // // Searching
-            // if (!string.IsNullOrWhiteSpace(query.Search))
-            // {
-            //     flashcardsQuery = flashcardsQuery
-            //         .Where(f => f.German.Contains(query.Search) || f.English.Contains(query.Search));
-            // }
-
-            // // Filtering (example: by category)
-            // if (!string.IsNullOrWhiteSpace(query.Category))
-            // {
-            //     flashcardsQuery = flashcardsQuery.Where(f => f.Category == query.Category);
-            // }
-
-            // Sorting
-            if (!string.IsNullOrWhiteSpace(query.SortBy))
+            if (!string.IsNullOrWhiteSpace(queryParams.Search))
             {
-                flashcardsQuery = query.SortDesc
-                    ? flashcardsQuery.OrderByDescendingDynamic(query.SortBy)
-                    : flashcardsQuery.OrderByDynamic(query.SortBy);
+                var search = queryParams.Search.ToLower();
+
+                query = query.Where(f =>
+                    f.Translations.Any(t => t.Text.ToLower().Contains(search))
+                );
             }
 
-            var totalCount = await flashcardsQuery.CountAsync();
+            var totalCount = await query.CountAsync();
 
-            // Pagination
-            int skip = (query.Page - 1) * query.PageSize;
-            var items = await flashcardsQuery
-                .Skip(skip)
-                .Take(query.PageSize)
+            var items = await query
+                .Skip((queryParams.Page - 1) * queryParams.PageSize)
+                .Take(queryParams.PageSize)
                 .ToListAsync();
 
-            // Return structured result
             return new PagedResult<Flashcard>
             {
                 Items = items,
                 TotalCount = totalCount
             };
-            // int skip = (query.Page - 1) * query.PageSize;
-            // flashcardsQuery = flashcardsQuery.Skip(skip).Take(query.PageSize);
-            //
-            // return await flashcardsQuery.ToListAsync();
         }
 
-
-        public async Task<Flashcard> GetByIdAsync(int id)
+        public async Task<Flashcard?> GetByIdAsync(int id)
         {
-            var entity = await _context.Flashcards.FindAsync(id);
-
-            if (entity == null)
-                throw new Exception("Flashcard not found");
-
-            return entity;
+            return await _context.Flashcards
+                .Include(f => f.Translations)
+                .FirstOrDefaultAsync(f => f.Id == id);
         }
 
         public async Task AddAsync(Flashcard flashcard)
         {
-            await _context.Flashcards.AddAsync(flashcard);
+            _context.Flashcards.Add(flashcard);
             await _context.SaveChangesAsync();
         }
 
         public async Task AddFlashcardsAsync(List<Flashcard> flashcards)
         {
-            await _context.Flashcards.AddRangeAsync(flashcards);
+            _context.Flashcards.AddRange(flashcards);
             await _context.SaveChangesAsync();
         }
-
 
         public async Task UpdateAsync(Flashcard flashcard)
         {
@@ -108,32 +78,13 @@ namespace VocabularyTrainer.DataAccess.Repositories
                 await _context.SaveChangesAsync();
             }
         }
-    }
 
-    public static class IQueryableExtensions
-    {
-        public static IQueryable<T> OrderByDynamic<T>(this IQueryable<T> source, string propertyName)
+        public async Task<List<Flashcard>> GetAllByUserAsync(int userId)
         {
-            var param = Expression.Parameter(typeof(T), "x");
-            var property = Expression.Property(param, propertyName);
-            var lambda = Expression.Lambda(property, param);
-            var method = typeof(Queryable).GetMethods()
-                .Where(m => m.Name == "OrderBy" && m.GetParameters().Length == 2)
-                .Single()
-                .MakeGenericMethod(typeof(T), property.Type);
-            return (IQueryable<T>)method.Invoke(null, new object[] { source, lambda })!;
-        }
-
-        public static IQueryable<T> OrderByDescendingDynamic<T>(this IQueryable<T> source, string propertyName)
-        {
-            var param = Expression.Parameter(typeof(T), "x");
-            var property = Expression.Property(param, propertyName);
-            var lambda = Expression.Lambda(property, param);
-            var method = typeof(Queryable).GetMethods()
-                .Where(m => m.Name == "OrderByDescending" && m.GetParameters().Length == 2)
-                .Single()
-                .MakeGenericMethod(typeof(T), property.Type);
-            return (IQueryable<T>)method.Invoke(null, new object[] { source, lambda })!;
+            return await _context.Flashcards
+                .Where(f => f.UserId == userId)
+                .Include(f => f.Translations)
+                .ToListAsync();
         }
     }
 }

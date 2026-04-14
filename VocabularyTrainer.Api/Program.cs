@@ -3,6 +3,8 @@ using VocabularyTrainer.Data.Data;
 
 using VocabularyTrainer.Service.Services;
 using VocabularyTrainer.DataAccess.Repositories;
+using VocabularyTrainer.Service.Interfaces;
+using VocabularyTrainer.DataAccess.Interfaces;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -30,6 +32,9 @@ builder.Services.AddCors(options =>
                   .AllowAnyHeader();
         });
 });
+
+builder.Services.AddScoped<IFlashcardService, FlashcardService>();
+builder.Services.AddScoped<IFlashcardRepository, FlashcardRepository>();
 
 
 
