@@ -3,6 +3,7 @@ using VocabularyTrainer.Data.Data;
 using VocabularyTrainer.Data.Models;
 using VocabularyTrainer.DataAccess.Interfaces;
 using VocabularyTrainer.Contracts.Flashcards;
+using VocabularyTrainer.Contracts.Common;
 
 namespace VocabularyTrainer.DataAccess.Repositories
 {
@@ -29,6 +30,7 @@ namespace VocabularyTrainer.DataAccess.Repositories
                     f.Translations.Any(t => t.Text.ToLower().Contains(search))
                 );
             }
+            
 
             var totalCount = await query.CountAsync();
 
@@ -40,7 +42,9 @@ namespace VocabularyTrainer.DataAccess.Repositories
             return new PagedResult<Flashcard>
             {
                 Items = items,
-                TotalCount = totalCount
+                TotalCount = totalCount,
+                Page = queryParams.Page,
+                PageSize = queryParams.PageSize
             };
         }
 

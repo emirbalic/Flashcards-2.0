@@ -1,14 +1,12 @@
 namespace VocabularyTrainer.Contracts.Flashcards;
 
-public class CreateFlashcardDto
+public class FlashcardTranslationDto
 {
-    public string? WordType { get; set; }
-    public List<CreateFlashcardTranslationDto> Translations { get; set; } = new();
-}
+    public int Id { get; set; }
 
-public class CreateFlashcardTranslationDto
-{
     public string LanguageCode { get; set; } = string.Empty;
+
     public string Text { get; set; } = string.Empty;
+
     public string? ExampleSentence { get; set; }
 }

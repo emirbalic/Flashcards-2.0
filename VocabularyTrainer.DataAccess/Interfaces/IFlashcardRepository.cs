@@ -1,3 +1,4 @@
+using VocabularyTrainer.Contracts.Common;
 using VocabularyTrainer.Contracts.Flashcards;
 using VocabularyTrainer.Data.Models;
 
@@ -10,6 +11,7 @@ public interface IFlashcardRepository
 
     Task<Flashcard?> GetByIdAsync(int id);
     Task<PagedResult<Flashcard>> GetFilteredFlashcardsAsync(FlashcardQueryParams queryParams);
+    
     Task<List<Flashcard>> GetAllByUserAsync(int userId);
 
     Task UpdateAsync(Flashcard flashcard);

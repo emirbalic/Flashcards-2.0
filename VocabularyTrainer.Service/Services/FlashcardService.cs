@@ -1,43 +1,79 @@
-// VocabularyTrainer.Service/Services/FlashcardService.cs
-
-using VocabularyTrainer.DataAccess.Repositories;
+using AutoMapper;
+using VocabularyTrainer.Contracts.Flashcards;
 using VocabularyTrainer.Data.Models;
+using VocabularyTrainer.DataAccess.Interfaces;
+using VocabularyTrainer.Service.Interfaces;
 using System.Text.Json;
-
 using CsvHelper;
 using CsvHelper.Configuration;
 using System.Globalization;
-
 using Microsoft.AspNetCore.Http;
-using VocabularyTrainer.Contracts.Flashcards;
-using VocabularyTrainer.Service.Interfaces;
+using VocabularyTrainer.Contracts.Common;
 
 namespace VocabularyTrainer.Service.Services
 {
     public class FlashcardService : IFlashcardService
     {
-        private readonly FlashcardRepository _flashcardRepository;
+        private readonly IFlashcardRepository _repository;
+        private readonly IMapper _mapper;
 
-        public FlashcardService(FlashcardRepository flashcardRepository)
+        public FlashcardService(IFlashcardRepository repository, IMapper mapper)
         {
-            _flashcardRepository = flashcardRepository;
+            _repository = repository;
+            _mapper = mapper;
         }
 
         // ---------------- EXISTING ----------------
 
-        public async Task<PagedResult<Flashcard>> GetFlashcardsAsync(FlashcardQueryParams queryParams)
+        // public async Task<PagedResult<Flashcard>> GetFlashcardsAsync(FlashcardQueryParams queryParams)
+        // {
+        //     return await _repository.GetFilteredFlashcardsAsync(queryParams);
+        // }
+
+        public async Task<PagedResult<FlashcardDto>> GetFlashcardsAsync(FlashcardQueryParams queryParams)
         {
-            return await _flashcardRepository.GetFilteredFlashcardsAsync(queryParams);
+            var result = await _repository.GetFilteredFlashcardsAsync(queryParams);
+
+            return new PagedResult<FlashcardDto>
+            {
+                Items = _mapper.Map<List<FlashcardDto>>(result.Items),
+                TotalCount = result.TotalCount,
+                Page = queryParams.Page,
+                PageSize = queryParams.PageSize
+            };
         }
 
         public async Task<Flashcard?> GetFlashcardByIdAsync(int id)
         {
-            return await _flashcardRepository.GetByIdAsync(id);
+            return await _repository.GetByIdAsync(id);
         }
 
-        public async Task CreateFlashcardAsync(Flashcard flashcard)
+        public async Task<Flashcard> CreateAsync(CreateFlashcardDto dto, int userId)
         {
-            await _flashcardRepository.AddAsync(flashcard);
+            var flashcard = new Flashcard
+            {
+                UserId = userId,
+                WordType = dto.WordType,
+                Translations = dto.Translations.Select(t => new FlashcardTranslation
+                {
+                    LanguageCode = t.LanguageCode,
+                    Text = t.Text,
+                    ExampleSentence = t.ExampleSentence
+                }).ToList()
+            };
+
+            await _repository.AddAsync(flashcard);
+            return flashcard;
+        }
+
+        public async Task UpdateFlashcardAsync(Flashcard flashcard)
+        {
+            await _repository.UpdateAsync(flashcard);
+        }
+
+        public async Task DeleteFlashcardAsync(int id)
+        {
+            await _repository.DeleteAsync(id);
         }
 
         public async Task<(bool Success, string Message, int Count)> UploadFlashcardsAsync(IFormFile file)
@@ -68,7 +104,7 @@ namespace VocabularyTrainer.Service.Services
                 if (flashcards == null || !flashcards.Any())
                     return new UploadResult(false, "Invalid or empty JSON file.");
 
-                await _flashcardRepository.AddFlashcardsAsync(flashcards);
+                await _repository.AddFlashcardsAsync(flashcards);
 
                 return new UploadResult(true, flashcards.Count);
             }
@@ -94,7 +130,7 @@ namespace VocabularyTrainer.Service.Services
                 if (!flashcards.Any())
                     return new UploadResult(false, "CSV file is empty or invalid.");
 
-                await _flashcardRepository.AddFlashcardsAsync(flashcards);
+                await _repository.AddFlashcardsAsync(flashcards);
 
                 return new UploadResult(true, flashcards.Count);
             }
@@ -104,40 +140,47 @@ namespace VocabularyTrainer.Service.Services
             }
         }
 
-        public async Task UpdateFlashcardAsync(Flashcard flashcard)
+        // ---------------- NEW CLEAN READ (DTO-based) ----------------
+
+        public async Task<List<FlashcardDto>> GetAllAsync(int userId)
         {
-            await _flashcardRepository.UpdateAsync(flashcard);
+            var entities = await _repository.GetAllByUserAsync(userId);
+
+            return _mapper.Map<List<FlashcardDto>>(entities);
         }
 
-        public async Task DeleteFlashcardAsync(int id)
-        {
-            await _flashcardRepository.DeleteAsync(id);
-        }
+        //         public async Task<PagedResult<FlashcardDto>> GetFlashcardsAsync(FlashcardQueryParams queryParams)
+        // {
+        //     var result = await _repository.GetFilteredFlashcardsAsync(queryParams);
 
-        // ---------------- NEW (2.0) ----------------
-
-        public async Task<Flashcard> CreateAsync(CreateFlashcardDto dto, int userId)
-        {
-            var flashcard = new Flashcard
-            {
-                UserId = userId,
-                WordType = dto.WordType,
-                Translations = dto.Translations.Select(t => new FlashcardTranslation
-                {
-                    LanguageCode = t.LanguageCode,
-                    Text = t.Text,
-                    ExampleSentence = t.ExampleSentence
-                }).ToList()
-            };
-
-            await _flashcardRepository.AddAsync(flashcard);
-
-            return flashcard;
-        }
-
-        public async Task<List<Flashcard>> GetAllAsync(int userId)
-        {
-            return await _flashcardRepository.GetAllByUserAsync(userId);
-        }
+        //     return new PagedResult<FlashcardDto>
+        //     {
+        //         Items = _mapper.Map<List<FlashcardDto>>(result.Items),
+        //         TotalCount = result.TotalCount,
+        //         Page = queryParams.Page,
+        //         PageSize = queryParams.PageSize
+        //     };
     }
+
+    // ---------------- NEW CREATE (still manual for now) ----------------
+
+    // public async Task<Flashcard> CreateAsync(CreateFlashcardDto dto, int userId)
+    // {
+    //     var flashcard = new Flashcard
+    //     {
+    //         UserId = userId,
+    //         WordType = dto.WordType,
+    //         Translations = dto.Translations.Select(t => new FlashcardTranslation
+    //         {
+    //             LanguageCode = t.LanguageCode,
+    //             Text = t.Text,
+    //             ExampleSentence = t.ExampleSentence
+    //         }).ToList()
+    //     };
+
+    //     await _repository.AddAsync(flashcard);
+
+    //     return flashcard;
+    // }
+    // }
 }

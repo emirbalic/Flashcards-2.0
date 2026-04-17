@@ -6,6 +6,8 @@ using VocabularyTrainer.DataAccess.Repositories;
 using VocabularyTrainer.Service.Interfaces;
 using VocabularyTrainer.DataAccess.Interfaces;
 
+using VocabularyTrainer.Service.Mapping;
+
 var builder = WebApplication.CreateBuilder(args);
 
 // Register FlashcardService for DI
@@ -35,6 +37,7 @@ builder.Services.AddCors(options =>
 
 builder.Services.AddScoped<IFlashcardService, FlashcardService>();
 builder.Services.AddScoped<IFlashcardRepository, FlashcardRepository>();
+builder.Services.AddAutoMapper(typeof(FlashcardProfile));
 
 
 
